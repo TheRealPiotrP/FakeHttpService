@@ -8,9 +8,7 @@ build_script:
     - cmd: dotnet build FakeHttpService.sln
 
 after_build:
-    - ps: cd .\FakeHttpService
-    - cmd: dotnet pack --no-build
+    - cmd: dotnet pack .\FakeHttpService\FakeHttpService.csproj --no-build
 
 test_script:
-    - ps: cd .\FakeHttpService.Tests
-    - cmd: dotnet test
+    - cmd: dotnet test .\FakeHttpService.Tests\FakeHttpService.Tests.csproj
