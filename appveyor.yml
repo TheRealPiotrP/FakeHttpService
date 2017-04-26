@@ -1,10 +1,12 @@
 configuration:
   - Release
 
-build:
-  project: FakeHttpService.sln
-  publish_nuget: true
+before_build:
+    - cmd: dotnet restore FakeHttpService.sln
 
-test:
-  assemblies:
-    - '**\*.Tests.dll'
+build_script:
+    - cmd: dotnet build FakeHttpService.sln
+
+test_script:
+    - ps: cd .\FakeHttpService.Tests
+    - cmd: dotnet test
