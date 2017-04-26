@@ -8,10 +8,12 @@ before_build:
   - cmd: dotnet restore FakeHttpService.sln
 
 build_script:
-  - cmd: dotnet build FakeHttpService.sln
+  - cmd: >-
+      dotnet build FakeHttpService.sln /p:Version=%APPVEYOR_BUILD_VERSION%
 
 after_build:
-  - cmd: dotnet pack .\FakeHttpService\FakeHttpService.csproj --no-build
+  - cmd: >-
+      dotnet pack .\FakeHttpService\FakeHttpService.csproj --no-build /p:Version=%APPVEYOR_BUILD_VERSION%
 
 test_script:
   - cmd: dotnet test .\FakeHttpService.Tests\FakeHttpService.Tests.csproj
