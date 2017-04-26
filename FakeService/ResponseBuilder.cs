@@ -7,18 +7,18 @@ namespace FakeService
 {
     public class ResponseBuilder
     {
-        private readonly MockService _mockService;
+        private readonly FakeService _fakeService;
 
         private readonly Expression<Func<HttpRequest, bool>> _requestValidator;
 
-        internal ResponseBuilder(MockService mockService, Expression<Func<HttpRequest, bool>> requestValidator)
+        internal ResponseBuilder(FakeService fakeService, Expression<Func<HttpRequest, bool>> requestValidator)
         {
             _requestValidator = requestValidator;
 
-            _mockService = mockService;
+            _fakeService = fakeService;
         }
 
-        public MockService RespondWith(Func<HttpResponse, Task> responseConfiguration)
+        public FakeService RespondWith(Func<HttpResponse, Task> responseConfiguration)
         {
             if (responseConfiguration == null) throw new ArgumentNullException("responseConfiguration");
 
@@ -27,23 +27,23 @@ namespace FakeService
                 await responseConfiguration(c);
             };
 
-            _mockService.Setup(_requestValidator, responseFunction);
+            _fakeService.Setup(_requestValidator, responseFunction);
 
-            return _mockService;
+            return _fakeService;
         }
 
-        public MockService RespondWith(Func<HttpResponse, string, Task> responseConfiguration)
+        public FakeService RespondWith(Func<HttpResponse, Uri, Task> responseConfiguration)
         {
             if (responseConfiguration == null) throw new ArgumentNullException("responseConfiguration");
 
             Func<HttpResponse, Task> responseFunction = async c =>
             {
-                await responseConfiguration(c, _mockService.BaseAddress);
+                await responseConfiguration(c, _fakeService.BaseAddress);
             };
 
-            _mockService.Setup(_requestValidator, responseFunction);
+            _fakeService.Setup(_requestValidator, responseFunction);
 
-            return _mockService;
+            return _fakeService;
         }
     }
 }

@@ -4,16 +4,20 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace FakeService
 {
-    public class MockService : IDisposable
+    public class FakeService : IDisposable
     {
-        private string _baseAddress;
+        private Uri _baseAddress;
 
-        private readonly string _serviceId = Guid.NewGuid().ToString();
-
-        private readonly TestHost _host;
+        private readonly IWebHost _host;
 
         private readonly List<Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>> _handlers;
 
@@ -21,9 +25,7 @@ namespace FakeService
 
         private readonly bool _ignoreUnusedHandlers;
 
-        private ILogger _logger;
-
-        public MockService(bool ignoreUnusedHandlers = false)
+        public FakeService(bool ignoreUnusedHandlers = false)
         {
             _handlers = new List<Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>>();
             _unusedHandlers = new List<Expression<Func<HttpRequest, bool>>>();
@@ -32,9 +34,12 @@ namespace FakeService
             MockServiceRepository.Register(this);
 
 
+            var config = new ConfigurationBuilder().Build();
+
             var builder = new WebHostBuilder()
-                .UseStartup<Startup>()
+                .UseConfiguration(config)
                 .UseKestrel()
+                .UseStartup<Startup>()
                 .UseSetting("applicationName", ServiceId)
                 .UseUrls("http://127.0.0.1:0");
 
@@ -42,18 +47,23 @@ namespace FakeService
 
             _host.Start();
 
-            BaseAddress = _host
+            var sf = _host.ServerFeatures;
+            var f = sf.Get<IServerAddressesFeature>();
+            var @as = f.Addresses;
+            var a = @as.First();
+
+            BaseAddress = new Uri(_host
                 .ServerFeatures.Get<IServerAddressesFeature>()
-                .Addresses.First();
+                .Addresses.First());
         }
 
 
-        internal MockService Setup(Expression<Func<HttpRequest, bool>> condition, Func<HttpResponse, Task> response)
+        internal FakeService Setup(Expression<Func<HttpRequest, bool>> condition, Func<HttpResponse, Task> response)
         {
             _handlers.Add(new Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>(condition, response));
             _unusedHandlers.Add(condition);
 
-            _logger.LogInformation(new ConstantMemberEvaluationVisitor().Visit(condition).ToString());
+            Logger.LogInformation(new ConstantMemberEvaluationVisitor().Visit(condition).ToString());
 
             return this;
         }
@@ -93,12 +103,9 @@ namespace FakeService
             }
         }
 
-        public string BaseAddress
+        public Uri BaseAddress
         {
-            get
-            {
-                return _baseAddress;
-            }
+            get => _baseAddress;
 
             set
             {
@@ -111,7 +118,7 @@ namespace FakeService
             }
         }
 
-        public string ServiceId => _serviceId;
+        public string ServiceId { get; } = Guid.NewGuid().ToString();
 
         public void Dispose()
         {
@@ -127,16 +134,6 @@ namespace FakeService
                             .Aggregate((c, n) => c + "\r\n" + n)));
         }
 
-        internal ILogger Logger
-        {
-            get
-            {
-                return _logger;
-            }
-            set
-            {
-                _logger = value;
-            }
-        }
+        internal ILogger Logger { get; set; }
     }
 }
