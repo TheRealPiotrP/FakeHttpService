@@ -1,14 +1,17 @@
+artifacts:
+  - path: '**\*.nupkg'
+
 configuration:
   - Release
 
 before_build:
-    - cmd: dotnet restore FakeHttpService.sln
+  - cmd: dotnet restore FakeHttpService.sln
 
 build_script:
-    - cmd: dotnet build FakeHttpService.sln
+  - cmd: dotnet build FakeHttpService.sln
 
 after_build:
-    - cmd: dotnet pack .\FakeHttpService\FakeHttpService.csproj --no-build
+  - cmd: dotnet pack .\FakeHttpService\FakeHttpService.csproj --no-build
 
 test_script:
-    - cmd: dotnet test .\FakeHttpService.Tests\FakeHttpService.Tests.csproj
+  - cmd: dotnet test .\FakeHttpService.Tests\FakeHttpService.Tests.csproj
