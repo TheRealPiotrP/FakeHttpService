@@ -3,15 +3,15 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace FakeService
+namespace FakeHttpService
 {
     public class Startup
     {
-        private readonly FakeService _service;
+        private readonly FakeHttpService _httpService;
 
         public Startup(IHostingEnvironment env)
         {
-            _service = FakeServiceRepository.GetServiceMockById(env.ApplicationName);
+            _httpService = FakeHttpServiceRepository.GetServiceMockById(env.ApplicationName);
         }
 
         public IConfigurationRoot Configuration { get; private set; }
@@ -20,12 +20,12 @@ namespace FakeService
         {
             loggerFactory.AddConsole();
 
-            _service.Logger = loggerFactory.CreateLogger("MockLogger");
+            _httpService.Logger = loggerFactory.CreateLogger("MockLogger");
 
             app.UseMiddleware<RequestLoggingMiddleware>()
                 .Run(async context =>
                 {
-                    await _service.Invoke(context);
+                    await _httpService.Invoke(context);
                 });
 
             app.UseDeveloperExceptionPage();

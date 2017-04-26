@@ -1,14 +1,13 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using FakeService.Tests;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace XUnitTestProject1
+namespace FakeHttpService.Tests
 {
     public class Given_I_want_to_get_fake_responses_in_a_test
     {
@@ -22,7 +21,7 @@ namespace XUnitTestProject1
         [Fact]
         public async Task When_requesting_a_registered_Uri_Then_the_expected_response_is_returned()
         {
-            using (var fakeService = new FakeService.FakeService()
+            using (var fakeService = new FakeHttpService()
                 .OnRequest(r => true)
                 .RespondWith(async r => {}))
             {
@@ -35,7 +34,7 @@ namespace XUnitTestProject1
         [Fact]
         public async Task When_response_includes_headers_Then_they_are_returned()
         {
-            using (var fakeService = new FakeService.FakeService()
+            using (var fakeService = new FakeHttpService()
                 .OnRequest(r => true)
                 .RespondWith(async r =>
                 {
@@ -54,7 +53,7 @@ namespace XUnitTestProject1
         [Fact]
         public async Task When_response_includes_a_body_Then_it_is_returned()
         {
-            using (var fakeService = new FakeService.FakeService()
+            using (var fakeService = new FakeHttpService()
                 .OnRequest(r => true)
                 .RespondWith(async r =>
                 {
@@ -74,7 +73,7 @@ namespace XUnitTestProject1
         {
             Action createServiceWithoutInvoking = () =>
             {
-                using (new FakeService.FakeService()
+                using (new FakeHttpService()
                     .OnRequest(r => r.Path == "foo")
                     .RespondWith(async r =>
                     {
@@ -92,7 +91,7 @@ namespace XUnitTestProject1
         {
             Action createServiceWithoutInvoking = () =>
             {
-                using (new FakeService.FakeService(ignoreUnusedHandlers: true)
+                using (new FakeHttpService(ignoreUnusedHandlers: true)
                     .OnRequest(r => r.Path == "foo")
                     .RespondWith(async r =>
                     {
@@ -112,7 +111,7 @@ namespace XUnitTestProject1
 
             Func<Task<HttpResponseMessage>> makeRequest;
 
-            using (var fakeService = new FakeService.FakeService()
+            using (var fakeService = new FakeHttpService()
                 .OnRequest(r => true)
                 .RespondWith(async r => { }))
             {
@@ -140,7 +139,7 @@ namespace XUnitTestProject1
 
             var path = new Uri("/some/path", UriKind.Relative);
 
-            using (var fakeService = new FakeService.FakeService()
+            using (var fakeService = new FakeHttpService()
                 .OnRequest(r => r.Path.ToString() == path.ToString())
                 .RespondWith(async r =>
                 {
@@ -159,11 +158,9 @@ namespace XUnitTestProject1
         [Fact]
         public void When_request_condition_met_Then_provides_response_with_baseAddress()
         {
-            const string responseBody = "a quick brown fox";
-
             var path = new Uri("/some/path", UriKind.Relative);
 
-            using (var fakeService = new FakeService.FakeService()
+            using (var fakeService = new FakeHttpService()
                 .OnRequest(r => r.Path.ToString() == path.ToString())
                 .RespondWith(async (r,s) => await r.Body.WriteTextAsUtf8BytesAsync(s.AbsolutePath)))
             {
@@ -179,7 +176,7 @@ namespace XUnitTestProject1
         {
             HttpResponseMessage response;
 
-            using (var fakeService = new FakeService.FakeService())
+            using (var fakeService = new FakeHttpService())
             {
                 var client = new HttpClient {BaseAddress = fakeService.BaseAddress};
 
@@ -197,7 +194,7 @@ namespace XUnitTestProject1
 
             HttpResponseMessage response;
 
-            using (var fakeService = new FakeService.FakeService()
+            using (var fakeService = new FakeHttpService()
                 .OnRequest(r => true)
                 .RespondWith(r => { throw new Exception(exceptionMessage); }))
             {

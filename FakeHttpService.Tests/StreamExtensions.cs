@@ -2,7 +2,7 @@
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FakeService.Tests
+namespace FakeHttpService.Tests
 {
     public static class StreamExtensions
     {

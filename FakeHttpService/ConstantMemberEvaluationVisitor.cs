@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 
-namespace FakeService
+namespace FakeHttpService
 {
     public class ConstantMemberEvaluationVisitor : ExpressionVisitor
     {

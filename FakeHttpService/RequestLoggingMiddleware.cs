@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 
-namespace FakeService
+namespace FakeHttpService
 {
     public class RequestLoggingMiddleware
     {

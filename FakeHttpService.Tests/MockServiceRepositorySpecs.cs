@@ -2,47 +2,47 @@ using System;
 using FluentAssertions;
 using Xunit;
 
-namespace FakeService.Tests
+namespace FakeHttpService.Tests
 {
     public class MockServiceRepositorySpecs
     {
         [Fact]
         public void When_GetServiceMockById_called_with_unregistered_Id_Then_returns_null()
         {
-            FakeServiceRepository.GetServiceMockById("foo")
+            FakeHttpServiceRepository.GetServiceMockById("foo")
                 .Should().BeNull("Because no MockService is registered at this port");
         }
 
         [Fact]
         public void When_GetServiceMockById_called_with_registered_port_Then_returns_registered_MockService()
         {
-            var mockService = new FakeService();
+            var mockService = new FakeHttpService();
 
-            FakeServiceRepository.GetServiceMockById(mockService.ServiceId)
+            FakeHttpServiceRepository.GetServiceMockById(mockService.ServiceId)
                 .Should().Be(mockService, "Because the MockService self-registered.");
 
-            FakeServiceRepository.Unregister(mockService);
+            FakeHttpServiceRepository.Unregister(mockService);
         }
 
         [Fact]
         public void When_Unregister_called_with_registered_MockService_Then_removes_MockService()
         {
-            var mockService = new FakeService();
+            var mockService = new FakeHttpService();
 
-            FakeServiceRepository.Unregister(mockService);
+            FakeHttpServiceRepository.Unregister(mockService);
 
-            FakeServiceRepository.GetServiceMockById(mockService.ServiceId)
+            FakeHttpServiceRepository.GetServiceMockById(mockService.ServiceId)
                 .Should().BeNull("Because the mockService was unregistered");
         }
 
         [Fact]
         public void When_Unregister_called_with_unregistered_MockService_Then_throws_with_useful_message()
         {
-            var mockService = new FakeService();
+            var mockService = new FakeHttpService();
 
-            FakeServiceRepository.Unregister(mockService);
+            FakeHttpServiceRepository.Unregister(mockService);
 
-            Action unregister = () => FakeServiceRepository.Unregister(mockService);
+            Action unregister = () => FakeHttpServiceRepository.Unregister(mockService);
 
             unregister
                 .ShouldThrow<InvalidOperationException>("Because that MockService was not registered")
@@ -52,9 +52,9 @@ namespace FakeService.Tests
         [Fact]
         public void When_Register_called_with_registered_MockService_Then_throws_with_useful_message()
         {
-            var mockService = new FakeService();
+            var mockService = new FakeHttpService();
 
-            Action register = () => FakeServiceRepository.Register(mockService);
+            Action register = () => FakeHttpServiceRepository.Register(mockService);
 
             register
                 .ShouldThrow<InvalidOperationException>("Because that MockService is already registered")

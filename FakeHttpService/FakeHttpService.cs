@@ -4,16 +4,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using FakeHttpService;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
-namespace FakeService
+namespace FakeHttpService
 {
-    public class FakeService : IDisposable
+    public class FakeHttpService : IDisposable
     {
         private Uri _baseAddress;
 
@@ -25,13 +25,13 @@ namespace FakeService
 
         private readonly bool _ignoreUnusedHandlers;
 
-        public FakeService(bool ignoreUnusedHandlers = false)
+        public FakeHttpService(bool ignoreUnusedHandlers = false)
         {
             _handlers = new List<Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>>();
             _unusedHandlers = new List<Expression<Func<HttpRequest, bool>>>();
             _ignoreUnusedHandlers = ignoreUnusedHandlers;
 
-            FakeServiceRepository.Register(this);
+            FakeHttpServiceRepository.Register(this);
 
 
             var config = new ConfigurationBuilder().Build();
@@ -53,7 +53,7 @@ namespace FakeService
         }
 
 
-        internal FakeService Setup(Expression<Func<HttpRequest, bool>> condition, Func<HttpResponse, Task> response)
+        internal FakeHttpService Setup(Expression<Func<HttpRequest, bool>> condition, Func<HttpResponse, Task> response)
         {
             _handlers.Add(new Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>(condition, response));
             _unusedHandlers.Add(condition);
@@ -119,7 +119,7 @@ namespace FakeService
         {
             _host.Dispose();
 
-            FakeServiceRepository.Unregister(this);
+            FakeHttpServiceRepository.Unregister(this);
 
             if (_ignoreUnusedHandlers || !_unusedHandlers.Any()) return;
 

@@ -3,22 +3,22 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace FakeService
+namespace FakeHttpService
 {
     public class ResponseBuilder
     {
-        private readonly FakeService _fakeService;
+        private readonly FakeHttpService _fakeHttpService;
 
         private readonly Expression<Func<HttpRequest, bool>> _requestValidator;
 
-        internal ResponseBuilder(FakeService fakeService, Expression<Func<HttpRequest, bool>> requestValidator)
+        internal ResponseBuilder(FakeHttpService fakeHttpService, Expression<Func<HttpRequest, bool>> requestValidator)
         {
             _requestValidator = requestValidator;
 
-            _fakeService = fakeService;
+            _fakeHttpService = fakeHttpService;
         }
 
-        public FakeService RespondWith(Func<HttpResponse, Task> responseConfiguration)
+        public FakeHttpService RespondWith(Func<HttpResponse, Task> responseConfiguration)
         {
             if (responseConfiguration == null) throw new ArgumentNullException(nameof(responseConfiguration));
 
@@ -27,23 +27,23 @@ namespace FakeService
                 await responseConfiguration(c);
             }
 
-            _fakeService.Setup(_requestValidator, ResponseFunction);
+            _fakeHttpService.Setup(_requestValidator, ResponseFunction);
 
-            return _fakeService;
+            return _fakeHttpService;
         }
 
-        public FakeService RespondWith(Func<HttpResponse, Uri, Task> responseConfiguration)
+        public FakeHttpService RespondWith(Func<HttpResponse, Uri, Task> responseConfiguration)
         {
             if (responseConfiguration == null) throw new ArgumentNullException(nameof(responseConfiguration));
 
             async Task ResponseFunction(HttpResponse c)
             {
-                await responseConfiguration(c, _fakeService.BaseAddress);
+                await responseConfiguration(c, _fakeHttpService.BaseAddress);
             }
 
-            _fakeService.Setup(_requestValidator, ResponseFunction);
+            _fakeHttpService.Setup(_requestValidator, ResponseFunction);
 
-            return _fakeService;
+            return _fakeHttpService;
         }
     }
 }
