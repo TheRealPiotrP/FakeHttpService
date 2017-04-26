@@ -7,6 +7,10 @@ before_build:
 build_script:
     - cmd: dotnet build FakeHttpService.sln
 
+after_build:
+    - ps: cd .\FakeHttpService
+    - cmd: dotnet pack --no-build
+
 test_script:
     - ps: cd .\FakeHttpService.Tests
     - cmd: dotnet test
