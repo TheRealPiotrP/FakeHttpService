@@ -1,0 +1,10 @@
+configuration:
+  - Release
+
+build:
+  project: FakeHttpService.sln
+  publish_nuget: true
+
+test:
+  assemblies:
+    - '**\*.Tests.dll'
