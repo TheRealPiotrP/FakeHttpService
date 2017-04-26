@@ -37,7 +37,7 @@ namespace FakeService
             await bodyBuffer.CopyToAsync(bodyStream);
         }
 
-        private static async Task<string> ReadResponseBody(MemoryStream bodyBuffer)
+        private static async Task<string> ReadResponseBody(Stream bodyBuffer)
         {
             bodyBuffer.Seek(0, SeekOrigin.Begin);
             var reader = new StreamReader(bodyBuffer);
@@ -47,16 +47,27 @@ namespace FakeService
 
         private void WriteResponseSummary(HttpContext context, string responseBody)
         {
+            var responseHeaders = string.Join("",
+                context.Response.Headers.Select(
+                    h =>
+                    {
+                        var headerName = h.Key;
+
+                        var headerValueSummary = string.Join(", ", h.Value.Select(v => v.ToString()));
+
+                        return string.Format($@"{headerName}: {headerValueSummary}
+");
+                    }));
+
+            var reasonPhrase = context.Features.Get<IHttpResponseFeature>()?.ReasonPhrase;
+
+            var responseStatusCode = context.Response.StatusCode;
+
             _logger.LogInformation($@"
 <<<RESPONSE<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-HTTP/{context.Features.Get<IHttpResponseFeature>()?.ReasonPhrase} {(int) context.Response.StatusCode}
-{
-                    string.Join("",
-                        context.Response.Headers.Select(
-                            h =>
-                                string.Format("{0}: {1}\r\n", h.Key,
-                                    string.Join(", ", h.Value.Select(v => v.ToString())))))
-                }
+
+HTTP/{reasonPhrase} {responseStatusCode}
+{responseHeaders}
 {responseBody}
 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
         }
@@ -75,16 +86,27 @@ HTTP/{context.Features.Get<IHttpResponseFeature>()?.ReasonPhrase} {(int) context
                 bodyBuffer.Seek(0, SeekOrigin.Begin);
             }
 
+            var responseHeaders = string.Join(
+                "",
+                context.Request.Headers.Select(h =>
+                {
+                    var headerName = h.Key;
+
+                    var headerValueSummary = string.Join(", ", h.Value.Select(v => v));
+
+                    return $@"{headerName}: {headerValueSummary}
+";
+                }));
+
+            var requestMethod = context.Request.Method;
+
+            var displayUrl = context.Request.GetDisplayUrl();
+
             _logger.LogInformation($@"
 >>>REQUEST>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-{context.Request.Method} {context.Request.GetDisplayUrl()}
-{
-                    string.Join("",
-                        context.Request.Headers.Select(
-                            h =>
-                                string.Format("{0}: {1}\r\n", h.Key,
-                                    string.Join(", ", h.Value.Select(v => v)))))
-                }
+
+{requestMethod} {displayUrl}
+{responseHeaders}
 {requestBody}
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         }

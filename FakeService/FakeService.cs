@@ -31,7 +31,7 @@ namespace FakeService
             _unusedHandlers = new List<Expression<Func<HttpRequest, bool>>>();
             _ignoreUnusedHandlers = ignoreUnusedHandlers;
 
-            MockServiceRepository.Register(this);
+            FakeServiceRepository.Register(this);
 
 
             var config = new ConfigurationBuilder().Build();
@@ -46,11 +46,6 @@ namespace FakeService
             _host = builder.Build();
 
             _host.Start();
-
-            var sf = _host.ServerFeatures;
-            var f = sf.Get<IServerAddressesFeature>();
-            var @as = f.Addresses;
-            var a = @as.First();
 
             BaseAddress = new Uri(_host
                 .ServerFeatures.Get<IServerAddressesFeature>()
@@ -93,13 +88,13 @@ namespace FakeService
 
                 context.Response.StatusCode = 404;
 
-                Debug.WriteLine("No handler for request\n\r{0} {1}", context.Request.Method, context.Request.Path);
+                Debug.WriteLine($"No handler for request\n\r{context.Request.Method} {context.Request.Path}");
             }
             catch (Exception e)
             {
                 context.Response.StatusCode = 500;
 
-                await context.Response.WriteAsync(JObject.FromObject(e).ToString());
+                await context.Response.WriteAsync(e.ToString());
             }
         }
 
@@ -124,14 +119,18 @@ namespace FakeService
         {
             _host.Dispose();
 
-            MockServiceRepository.Unregister(this);
+            FakeServiceRepository.Unregister(this);
 
-            if (!_ignoreUnusedHandlers && _unusedHandlers.Any())
-                throw new InvalidOperationException(
-                    String.Format("Mock Server {0} expected requests \r\n\r\n {1} \r\n\r\n but they were not made.",
-                        BaseAddress,
-                        _unusedHandlers.Select(h => new ConstantMemberEvaluationVisitor().Visit(h).ToString())
-                            .Aggregate((c, n) => c + "\r\n" + n)));
+            if (_ignoreUnusedHandlers || !_unusedHandlers.Any()) return;
+
+            var unusedHandlerSummary = _unusedHandlers
+                .Select(h => new ConstantMemberEvaluationVisitor().Visit(h).ToString())
+                .Aggregate((c, n) => c + "\r\n" + n);
+
+            throw new InvalidOperationException(
+                $@"Mock Server {BaseAddress} expected requests
+{unusedHandlerSummary}
+but they were not made.");
         }
 
         internal ILogger Logger { get; set; }

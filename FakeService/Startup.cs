@@ -7,17 +7,15 @@ namespace FakeService
 {
     public class Startup
     {
-        private readonly global::FakeService.FakeService _service;
+        private readonly FakeService _service;
 
         public Startup(IHostingEnvironment env)
         {
-            _service = MockServiceRepository.GetServiceMockById(env.ApplicationName);
+            _service = FakeServiceRepository.GetServiceMockById(env.ApplicationName);
         }
-
 
         public IConfigurationRoot Configuration { get; private set; }
 
-        #region snippet_Configure
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
             loggerFactory.AddConsole();
@@ -25,11 +23,12 @@ namespace FakeService
             _service.Logger = loggerFactory.CreateLogger("MockLogger");
 
             app.UseMiddleware<RequestLoggingMiddleware>()
-                .Run(async (context) =>
+                .Run(async context =>
                 {
                     await _service.Invoke(context);
                 });
+
+            app.UseDeveloperExceptionPage();
         }
-        #endregion
     }
 }

@@ -20,28 +20,28 @@ namespace FakeService
 
         public FakeService RespondWith(Func<HttpResponse, Task> responseConfiguration)
         {
-            if (responseConfiguration == null) throw new ArgumentNullException("responseConfiguration");
+            if (responseConfiguration == null) throw new ArgumentNullException(nameof(responseConfiguration));
 
-            Func<HttpResponse, Task> responseFunction = async c =>
+            async Task ResponseFunction(HttpResponse c)
             {
                 await responseConfiguration(c);
-            };
+            }
 
-            _fakeService.Setup(_requestValidator, responseFunction);
+            _fakeService.Setup(_requestValidator, ResponseFunction);
 
             return _fakeService;
         }
 
         public FakeService RespondWith(Func<HttpResponse, Uri, Task> responseConfiguration)
         {
-            if (responseConfiguration == null) throw new ArgumentNullException("responseConfiguration");
+            if (responseConfiguration == null) throw new ArgumentNullException(nameof(responseConfiguration));
 
-            Func<HttpResponse, Task> responseFunction = async c =>
+            async Task ResponseFunction(HttpResponse c)
             {
                 await responseConfiguration(c, _fakeService.BaseAddress);
-            };
+            }
 
-            _fakeService.Setup(_requestValidator, responseFunction);
+            _fakeService.Setup(_requestValidator, ResponseFunction);
 
             return _fakeService;
         }

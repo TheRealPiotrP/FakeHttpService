@@ -6,17 +6,17 @@ using System.Collections.Generic;
 
 namespace FakeService
 {
-    internal static class MockServiceRepository
+    public static class FakeServiceRepository
     {
         private static readonly IDictionary<string, FakeService> MockServices =
             new Dictionary<string, FakeService>();
 
-        internal static FakeService GetServiceMockById(string mockServiceId)
+        public static FakeService GetServiceMockById(string mockServiceId)
         {
             return MockServices.ContainsKey(mockServiceId) ? MockServices[mockServiceId] : null;
         }
 
-        internal static void Register(FakeService mockService)
+        public static void Register(FakeService mockService)
         {
             lock (MockServices)
             {
@@ -29,7 +29,7 @@ namespace FakeService
             }
         }
 
-        internal static void Unregister(FakeService mockService)
+        public static void Unregister(FakeService mockService)
         {
             lock (MockServices)
             {
