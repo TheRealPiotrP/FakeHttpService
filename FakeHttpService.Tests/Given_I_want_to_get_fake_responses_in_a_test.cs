@@ -11,13 +11,6 @@ namespace FakeHttpService.Tests
 {
     public class Given_I_want_to_get_fake_responses_in_a_test
     {
-        private readonly ITestOutputHelper _output;
-
-        public Given_I_want_to_get_fake_responses_in_a_test(ITestOutputHelper output)
-        {
-            _output = output;
-        }
-
         [Fact]
         public async Task When_requesting_a_registered_Uri_Then_the_expected_response_is_returned()
         {
@@ -69,11 +62,11 @@ namespace FakeHttpService.Tests
         }
 
         [Fact]
-        public async Task When_an_expected_request_is_not_made_Then_an_exception_is_thrown()
+        public async Task When_an_expected_request_is_not_made_but_FakeServer_is_configured_to_throw_Then_an_exception_is_thrown()
         {
             Action createServiceWithoutInvoking = () =>
             {
-                using (new FakeHttpService()
+                using (new FakeHttpService(throwOnUnusedHandlers: true)
                     .OnRequest(r => r.Path == "foo")
                     .RespondWith(async r =>
                     {
@@ -87,11 +80,11 @@ namespace FakeHttpService.Tests
         }
 
         [Fact]
-        public async Task When_an_expected_request_is_not_made_but_FakeServer_is_configured_to_ignore_Then_an_exception_is_not_thrown()
+        public async Task When_an_expected_request_is_not_made_Then_an_exception_is_not_thrown()
         {
             Action createServiceWithoutInvoking = () =>
             {
-                using (new FakeHttpService(ignoreUnusedHandlers: true)
+                using (new FakeHttpService()
                     .OnRequest(r => r.Path == "foo")
                     .RespondWith(async r =>
                     {
