@@ -23,13 +23,13 @@ namespace FakeHttpService
 
         private readonly IList<Expression<Func<HttpRequest, bool>>> _unusedHandlers;
 
-        private readonly bool _ignoreUnusedHandlers;
+        private readonly bool _throwOnUnusedHandlers;
 
-        public FakeHttpService(bool ignoreUnusedHandlers = false)
+        public FakeHttpService(bool throwOnUnusedHandlers = false)
         {
             _handlers = new List<Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>>();
             _unusedHandlers = new List<Expression<Func<HttpRequest, bool>>>();
-            _ignoreUnusedHandlers = ignoreUnusedHandlers;
+            _throwOnUnusedHandlers = throwOnUnusedHandlers;
 
             FakeHttpServiceRepository.Register(this);
 
@@ -121,7 +121,9 @@ namespace FakeHttpService
 
             FakeHttpServiceRepository.Unregister(this);
 
-            if (_ignoreUnusedHandlers || !_unusedHandlers.Any()) return;
+            var shouldThrowForMissingRequests = _throwOnUnusedHandlers && _unusedHandlers.Any();
+
+            if (!shouldThrowForMissingRequests) return;
 
             var unusedHandlerSummary = _unusedHandlers
                 .Select(h => new ConstantMemberEvaluationVisitor().Visit(h).ToString())
