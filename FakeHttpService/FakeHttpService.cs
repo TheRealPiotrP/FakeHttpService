@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using FakeHttpService;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
@@ -15,8 +14,7 @@ namespace FakeHttpService
 {
     public class FakeHttpService : IDisposable
     {
-        private Uri _baseAddress;
-
+        private readonly bool serviceIdIsUserSpecified;
         private readonly IWebHost _host;
 
         private readonly List<Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>> _handlers;
@@ -25,14 +23,18 @@ namespace FakeHttpService
 
         private readonly bool _throwOnUnusedHandlers;
 
-        public FakeHttpService(bool throwOnUnusedHandlers = false)
+        public FakeHttpService(
+            string serviceId = null,
+            bool throwOnUnusedHandlers = false)
         {
             _handlers = new List<Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>>();
             _unusedHandlers = new List<Expression<Func<HttpRequest, bool>>>();
             _throwOnUnusedHandlers = throwOnUnusedHandlers;
+            ServiceId = serviceId ?? Guid.NewGuid().ToString();
+
+            serviceIdIsUserSpecified = serviceId != null;
 
             FakeHttpServiceRepository.Register(this);
-
 
             var config = new ConfigurationBuilder().Build();
 
@@ -51,7 +53,6 @@ namespace FakeHttpService
                 .ServerFeatures.Get<IServerAddressesFeature>()
                 .Addresses.First());
         }
-
 
         internal FakeHttpService Setup(Expression<Func<HttpRequest, bool>> condition, Func<HttpResponse, Task> response)
         {
@@ -98,22 +99,9 @@ namespace FakeHttpService
             }
         }
 
-        public Uri BaseAddress
-        {
-            get => _baseAddress;
+        public Uri BaseAddress { get; }
 
-            set
-            {
-                if (_baseAddress != null)
-                {
-                    throw new Exception("Base Address already set");
-                }
-
-                _baseAddress = value;
-            }
-        }
-
-        public string ServiceId { get; } = Guid.NewGuid().ToString();
+        public string ServiceId { get; }
 
         public void Dispose()
         {
@@ -130,11 +118,16 @@ namespace FakeHttpService
                 .Aggregate((c, n) => c + "\r\n" + n);
 
             throw new InvalidOperationException(
-                $@"Mock Server {BaseAddress} expected requests
+                $@"{GetType().Name} {ToString()} expected requests
 {unusedHandlerSummary}
 but they were not made.");
         }
 
         internal ILogger Logger { get; set; }
+
+        public override string ToString() => 
+            serviceIdIsUserSpecified ?
+                $"\"{ServiceId}\" @ {BaseAddress}" :
+                $"@ {BaseAddress}";
     }
 }

@@ -64,19 +64,27 @@ namespace FakeHttpService.Tests
         [Fact]
         public async Task When_an_expected_request_is_not_made_but_FakeServer_is_configured_to_throw_Then_an_exception_is_thrown()
         {
+            Uri address = null;
+
             Action createServiceWithoutInvoking = () =>
             {
-                using (new FakeHttpService(throwOnUnusedHandlers: true)
+                using (var fakeService = new FakeHttpService(
+                    "my service", 
+                    throwOnUnusedHandlers: true)
                     .OnRequest(r => r.Path == "foo")
-                    .RespondWith(async r =>
-                    {
-                    }))
+                    .RespondWith(async r => { }))
                 {
+                    address = fakeService.BaseAddress;
                 }
             };
 
-            createServiceWithoutInvoking.ShouldThrow<InvalidOperationException>(
-                "Because failing to perform a request can be an error");
+            createServiceWithoutInvoking
+                .ShouldThrow<InvalidOperationException>(
+                "Because failing to perform a request can be an error")
+                .Which
+                .Message
+                .Should()
+                .StartWith( $"{nameof(FakeHttpService)} \"my service\" @ {address} expected requests");
         }
 
         [Fact]
