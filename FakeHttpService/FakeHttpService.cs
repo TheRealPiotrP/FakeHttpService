@@ -14,7 +14,6 @@ namespace FakeHttpService
 {
     public class FakeHttpService : IDisposable
     {
-        private Uri _baseAddress;
         private readonly bool serviceIdIsUserSpecified;
         private readonly IWebHost _host;
 
@@ -100,20 +99,7 @@ namespace FakeHttpService
             }
         }
 
-        public Uri BaseAddress
-        {
-            get => _baseAddress;
-
-            set
-            {
-                if (_baseAddress != null)
-                {
-                    throw new Exception("Base Address already set");
-                }
-
-                _baseAddress = value;
-            }
-        }
+        public Uri BaseAddress { get; }
 
         public string ServiceId { get; }
 
