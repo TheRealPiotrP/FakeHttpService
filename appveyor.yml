@@ -1,5 +1,5 @@
 artifacts:
-  - path: '**\*.nupkg'
+  - path: '**\Release\*.nupkg'
 
 configuration:
   - Release
