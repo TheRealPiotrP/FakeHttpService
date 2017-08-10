@@ -46,7 +46,7 @@ namespace FakeHttpService.Tests
 
             unregister
                 .ShouldThrow<InvalidOperationException>("Because that MockService was not registered")
-                .WithMessage("MokService not registered", "Because that helps debug the issue");
+                .WithMessage("MockService not registered", "Because that helps debug the issue");
         }
 
         [Fact]
