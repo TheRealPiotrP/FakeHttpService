@@ -1,40 +1,43 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.Logging;
+using Pocket;
+using static Pocket.Logger<FakeHttpService.RequestLoggingMiddleware>;
 
 namespace FakeHttpService
 {
     public class RequestLoggingMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly ILogger<RequestLoggingMiddleware> _logger;
 
-        public RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
+        public RequestLoggingMiddleware(RequestDelegate next)
         {
-            _next = next;
-            _logger = logger;
+            _next = next ?? throw new ArgumentNullException(nameof(next));
         }
 
         public async Task Invoke(HttpContext context)
         {
-            await WriteRequestSummary(context);
+            using (var operation = Log.OnEnterAndConfirmOnExit())
+            {
+                await WriteRequestSummary(context, operation);
 
-            var bodyStream = context.Response.Body;
-            var bodyBuffer = new MemoryStream();
-            context.Response.Body = bodyBuffer;
+                var bodyStream = context.Response.Body;
+                var bodyBuffer = new MemoryStream();
+                context.Response.Body = bodyBuffer;
 
-            await _next.Invoke(context);
+                await _next.Invoke(context);
 
-            var responseBody = await ReadResponseBody(bodyBuffer);
+                var responseBody = await ReadResponseBody(bodyBuffer);
 
-            WriteResponseSummary(context, responseBody);
+                WriteResponseSummary(context, responseBody, operation);
 
-            bodyBuffer.Seek(0, SeekOrigin.Begin);
-            await bodyBuffer.CopyToAsync(bodyStream);
+                bodyBuffer.Seek(0, SeekOrigin.Begin);
+                await bodyBuffer.CopyToAsync(bodyStream);
+            }
         }
 
         private static async Task<string> ReadResponseBody(Stream bodyBuffer)
@@ -45,34 +48,38 @@ namespace FakeHttpService
             return responseBody;
         }
 
-        private void WriteResponseSummary(HttpContext context, string responseBody)
+        private void WriteResponseSummary(HttpContext context, string responseBody, ConfirmationLogger operation)
         {
             var responseHeaders = string.Join("",
-                context.Response.Headers.Select(
-                    h =>
-                    {
-                        var headerName = h.Key;
+                                              context.Response.Headers.Select(
+                                                  h =>
+                                                  {
+                                                      var headerName = h.Key;
 
-                        var headerValueSummary = string.Join(", ", h.Value.Select(v => v.ToString()));
+                                                      var headerValueSummary = string.Join(", ", h.Value.Select(v => v.ToString()));
 
-                        return string.Format($@"{headerName}: {headerValueSummary}
+                                                      return string.Format($@"{headerName}: {headerValueSummary}
 ");
-                    }));
+                                                  }));
 
             var reasonPhrase = context.Features.Get<IHttpResponseFeature>()?.ReasonPhrase;
 
             var responseStatusCode = context.Response.StatusCode;
 
-            _logger.LogInformation($@"
+            operation.Succeed(@"
 <<<RESPONSE<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 HTTP/{reasonPhrase} {responseStatusCode}
 {responseHeaders}
 {responseBody}
-<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
+                           reasonPhrase,
+                           responseStatusCode,
+                           responseHeaders,
+                           responseBody);
         }
 
-        private async Task WriteRequestSummary(HttpContext context)
+        private async Task WriteRequestSummary(HttpContext context, ConfirmationLogger operation)
         {
             var requestBody = "";
 
@@ -102,13 +109,17 @@ HTTP/{reasonPhrase} {responseStatusCode}
 
             var displayUrl = context.Request.GetDisplayUrl();
 
-            _logger.LogInformation($@"
+            operation.Info(@"
 >>>REQUEST>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 {requestMethod} {displayUrl}
 {responseHeaders}
 {requestBody}
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",
+                           requestMethod,
+                           displayUrl,
+                           responseHeaders,
+                           requestBody);
         }
     }
 }

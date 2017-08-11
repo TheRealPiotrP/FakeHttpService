@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using Pocket;
+using static Pocket.Logger<FakeHttpService.FakeHttpService>;
 
 namespace FakeHttpService
 {
@@ -59,7 +60,8 @@ namespace FakeHttpService
             _handlers.Add(new Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>(condition, response));
             _unusedHandlers.Add(condition);
 
-            Logger.LogInformation(new ConstantMemberEvaluationVisitor().Visit(condition).ToString());
+            Log.Info("Setting up condition {condition}",
+                     new ConstantMemberEvaluationVisitor().Visit(condition));
 
             return this;
         }
@@ -89,7 +91,7 @@ namespace FakeHttpService
 
                 context.Response.StatusCode = 404;
 
-                Debug.WriteLine($"No handler for request\n\r{context.Request.Method} {context.Request.Path}");
+                Debug.WriteLine($"No handler for request{Environment.NewLine}{context.Request.Method} {context.Request.Path}");
             }
             catch (Exception e)
             {
@@ -115,15 +117,13 @@ namespace FakeHttpService
 
             var unusedHandlerSummary = _unusedHandlers
                 .Select(h => new ConstantMemberEvaluationVisitor().Visit(h).ToString())
-                .Aggregate((c, n) => c + "\r\n" + n);
+                .Aggregate((c, n) => $"{c}{Environment.NewLine}{n}");
 
             throw new InvalidOperationException(
                 $@"{GetType().Name} {ToString()} expected requests
 {unusedHandlerSummary}
 but they were not made.");
         }
-
-        internal ILogger Logger { get; set; }
 
         public override string ToString() => 
             serviceIdIsUserSpecified ?
