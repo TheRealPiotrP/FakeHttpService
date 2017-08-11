@@ -16,5 +16,6 @@
     <PackageReference Include="Newtonsoft.Json">
       <Version>10.0.3</Version>
     </PackageReference>
+    <PackageReference Include="PocketLogger" Version="0.2.2" />
   </ItemGroup>
 </Project>

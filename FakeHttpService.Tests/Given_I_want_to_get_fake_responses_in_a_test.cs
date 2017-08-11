@@ -1,16 +1,26 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Pocket;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace FakeHttpService.Tests
 {
-    public class Given_I_want_to_get_fake_responses_in_a_test
+    public class Given_I_want_to_get_fake_responses_in_a_test : IDisposable
     {
+        private readonly IDisposable disposables;
+
+        public Given_I_want_to_get_fake_responses_in_a_test(ITestOutputHelper output)
+        {
+            disposables = LogEvents.Subscribe(e => output.WriteLine(e.ToLogString()));
+        }
+
+        public void Dispose() => disposables.Dispose();
+
         [Fact]
         public async Task When_requesting_a_registered_Uri_Then_the_expected_response_is_returned()
         {
