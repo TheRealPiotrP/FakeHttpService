@@ -41,18 +41,18 @@ namespace FakeHttpService
 
             var builder = new WebHostBuilder()
                 .UseConfiguration(config)
-                .UseKestrel()
-                .UseStartup<Startup>()
-                .UseSetting("applicationName", ServiceId)
-                .UseUrls("http://127.0.0.1:0");
+                 .UseKestrel()
+                 .UseStartup<Startup>()
+                 .UseSetting("applicationName", ServiceId)
+                 .UseUrls("http://127.0.0.1:0");
 
             _host = builder.Build();
 
             _host.Start();
 
             BaseAddress = new Uri(_host
-                .ServerFeatures.Get<IServerAddressesFeature>()
-                .Addresses.First());
+                                      .ServerFeatures.Get<IServerAddressesFeature>()
+                                       .Addresses.First());
         }
 
         internal FakeHttpService Setup(Expression<Func<HttpRequest, bool>> condition, Func<HttpResponse, Task> response)
@@ -107,27 +107,28 @@ namespace FakeHttpService
 
         public void Dispose()
         {
-            _host.Dispose();
+            Task.Run(() => _host.Dispose()).Wait();
 
             FakeHttpServiceRepository.Unregister(this);
 
             var shouldThrowForMissingRequests = _throwOnUnusedHandlers && _unusedHandlers.Any();
 
-            if (!shouldThrowForMissingRequests) return;
+            if (shouldThrowForMissingRequests)
+            {
+                var unusedHandlerSummary = _unusedHandlers
+                    .Select(h => new ConstantMemberEvaluationVisitor().Visit(h).ToString())
+                    .Aggregate((c, n) => $"{c}{Environment.NewLine}{n}");
 
-            var unusedHandlerSummary = _unusedHandlers
-                .Select(h => new ConstantMemberEvaluationVisitor().Visit(h).ToString())
-                .Aggregate((c, n) => $"{c}{Environment.NewLine}{n}");
-
-            throw new InvalidOperationException(
-                $@"{GetType().Name} {ToString()} expected requests
+                var exception = new InvalidOperationException(
+                    $@"{GetType().Name} {ToString()} expected requests
 {unusedHandlerSummary}
 but they were not made.");
+
+                throw exception;
+            }
         }
 
-        public override string ToString() => 
-            serviceIdIsUserSpecified ?
-                $"\"{ServiceId}\" @ {BaseAddress}" :
-                $"@ {BaseAddress}";
+        public override string ToString() =>
+            serviceIdIsUserSpecified ? $"\"{ServiceId}\" @ {BaseAddress}" : $"@ {BaseAddress}";
     }
 }
