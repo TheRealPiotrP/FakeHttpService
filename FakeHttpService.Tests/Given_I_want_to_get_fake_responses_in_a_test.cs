@@ -240,7 +240,7 @@ namespace FakeHttpService.Tests
             using (LogEvents.Subscribe(e => log.Add(e.ToLogString())))
             {
                 await new HttpClient().PostAsync(
-                   new Uri (fakeService.BaseAddress, "/and/the/path?and=query"),
+                    new Uri(fakeService.BaseAddress, "/and/the/path?and=query"),
                     new StringContent(JsonConvert.SerializeObject(new { RequestProperty = "request-property-value" }), Encoding.UTF8, "application/json"));
             }
 
@@ -248,6 +248,7 @@ namespace FakeHttpService.Tests
                .HaveCount(2);
 
             log[0]
+                .NormalizeLineEndings()
                 .Should()
                 .Match(@"*[FakeHttpService.RequestLoggingMiddleware] [Invoke]  ▶ 
   POST http://127.0.0.1:*/and/the/path?and=query
@@ -255,16 +256,15 @@ namespace FakeHttpService.Tests
     Content-Type: application/json; charset=utf-8
     Host: 127.0.0.1:*
     Content-Length: *
-  {""RequestProperty"":""request-property-value""}*");
+  {""RequestProperty"":""request-property-value""}*".NormalizeLineEndings());
 
             log[1]
+                .NormalizeLineEndings()
                 .Should()
                 .Match(@"*[FakeHttpService.RequestLoggingMiddleware] [Invoke]  ⏹ -> ✔ (*ms) 
   HTTP/ 200
     a-response-header: a-response-header-value
-  {""ResponseProperty"":""response-property-value""}*");
-
-           
+  {""ResponseProperty"":""response-property-value""}*".NormalizeLineEndings());
         }
     }
 }
