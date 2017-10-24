@@ -1,9 +1,12 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Primitives;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
@@ -220,6 +223,48 @@ namespace FakeHttpService.Tests
 
             response.Content.ReadAsStringAsync().Result
                 .Should().Contain(exceptionMessage);
+        }
+
+        [Fact]
+        public async Task Request_information_is_sent_to_PocketLogger()
+        {
+            var log = new List<string>();
+
+            using (var fakeService = new FakeHttpService()
+                .OnRequest(r => true)
+                .RespondWith(async r =>
+                {
+                    r.Headers.Add("a-response-header", "a-response-header-value");
+                    await r.WriteAsync(JsonConvert.SerializeObject(new { ResponseProperty = "response-property-value" }));
+                }))
+            using (LogEvents.Subscribe(e => log.Add(e.ToLogString())))
+            {
+                await new HttpClient().PostAsync(
+                   new Uri (fakeService.BaseAddress, "/and/the/path?and=query"),
+                    new StringContent(JsonConvert.SerializeObject(new { RequestProperty = "request-property-value" }), Encoding.UTF8, "application/json"));
+            }
+
+            log.Should()
+               .HaveCount(2);
+
+            log[0]
+                .Should()
+                .Match(@"*[FakeHttpService.RequestLoggingMiddleware] [Invoke]  ▶ 
+  POST http://127.0.0.1:*/and/the/path?and=query
+    Connection: Keep-Alive
+    Content-Type: application/json; charset=utf-8
+    Host: 127.0.0.1:*
+    Content-Length: *
+  {""RequestProperty"":""request-property-value""}*");
+
+            log[1]
+                .Should()
+                .Match(@"*[FakeHttpService.RequestLoggingMiddleware] [Invoke]  ⏹ -> ✔ (*ms) 
+  HTTP/ 200
+    a-response-header: a-response-header-value
+  {""ResponseProperty"":""response-property-value""}*");
+
+           
         }
     }
 }
