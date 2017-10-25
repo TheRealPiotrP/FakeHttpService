@@ -21,21 +21,21 @@ namespace FakeHttpService
 
         public async Task Invoke(HttpContext context)
         {
-            using (var operation = Log.OnEnterAndConfirmOnExit())
+            using (var operation = await LogRequest(context))
             {
-                await WriteRequestSummary(context, operation);
-
                 var bodyStream = context.Response.Body;
                 var bodyBuffer = new MemoryStream();
                 context.Response.Body = bodyBuffer;
 
                 await _next.Invoke(context);
 
-                var responseBody = await ReadResponseBody(bodyBuffer);
-
-                WriteResponseSummary(context, responseBody, operation);
+                LogResponse(
+                    context,
+                    await ReadResponseBody(bodyBuffer),
+                    operation);
 
                 bodyBuffer.Seek(0, SeekOrigin.Begin);
+
                 await bodyBuffer.CopyToAsync(bodyStream);
             }
         }
@@ -48,38 +48,26 @@ namespace FakeHttpService
             return responseBody;
         }
 
-        private void WriteResponseSummary(HttpContext context, string responseBody, ConfirmationLogger operation)
+        private void LogResponse(HttpContext context, string responseBody, ConfirmationLogger operation)
         {
-            var responseHeaders = string.Join("",
-                                              context.Response.Headers.Select(
-                                                  h =>
-                                                  {
-                                                      var headerName = h.Key;
+            var responseHeaders = context.Response.Headers.HeaderSummary();
 
-                                                      var headerValueSummary = string.Join(", ", h.Value.Select(v => v.ToString()));
-
-                                                      return string.Format($@"{headerName}: {headerValueSummary}
-");
-                                                  }));
-
-            var reasonPhrase = context.Features.Get<IHttpResponseFeature>()?.ReasonPhrase;
+            var reasonPhrase = context.Features.Get<IHttpResponseFeature>()?.ReasonPhrase ?? "";
 
             var responseStatusCode = context.Response.StatusCode;
 
             operation.Succeed(@"
-<<<RESPONSE<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-HTTP/{reasonPhrase} {responseStatusCode}
+  HTTP/{reasonPhrase} {responseStatusCode}
 {responseHeaders}
-{responseBody}
-<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
-                           reasonPhrase,
-                           responseStatusCode,
-                           responseHeaders,
-                           responseBody);
+  {responseBody}",
+                              reasonPhrase,
+                              responseStatusCode,
+                              responseHeaders,
+                              responseBody);
         }
 
-        private async Task WriteRequestSummary(HttpContext context, ConfirmationLogger operation)
+        private async Task<ConfirmationLogger> LogRequest(
+            HttpContext context)
         {
             var requestBody = "";
 
@@ -93,33 +81,21 @@ HTTP/{reasonPhrase} {responseStatusCode}
                 bodyBuffer.Seek(0, SeekOrigin.Begin);
             }
 
-            var responseHeaders = string.Join(
-                "",
-                context.Request.Headers.Select(h =>
-                {
-                    var headerName = h.Key;
-
-                    var headerValueSummary = string.Join(", ", h.Value.Select(v => v));
-
-                    return $@"{headerName}: {headerValueSummary}
-";
-                }));
+            var responseHeaders = context.Request.Headers.HeaderSummary();
 
             var requestMethod = context.Request.Method;
 
             var displayUrl = context.Request.GetDisplayUrl();
 
-            operation.Info(@"
->>>REQUEST>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-{requestMethod} {displayUrl}
+            return new ConfirmationLogger(
+                nameof(Invoke),
+                Log.Category,
+                @"
+  {requestMethod} {displayUrl}
 {responseHeaders}
-{requestBody}
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",
-                           requestMethod,
-                           displayUrl,
-                           responseHeaders,
-                           requestBody);
+  {requestBody}",
+                logOnStart: true,
+                args: new[] { requestMethod, displayUrl, responseHeaders, requestBody });
         }
     }
 }
