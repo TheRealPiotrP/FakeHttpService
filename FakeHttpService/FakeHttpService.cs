@@ -74,11 +74,7 @@ namespace FakeHttpService
         public FakeHttpService FailOnUnexpectedRequest()
         {
             var rb = new ResponseBuilder(this, _ => true);
-                return rb.RespondWith(async r =>
-            {
-                r.StatusCode = 500;
-                await Task.Yield();
-            });
+            return rb.Fail();
         }
 
         public async Task Invoke(HttpContext context)

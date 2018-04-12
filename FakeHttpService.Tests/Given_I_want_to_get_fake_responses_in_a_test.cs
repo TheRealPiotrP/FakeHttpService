@@ -75,11 +75,7 @@ namespace FakeHttpService.Tests
                 .OnRequest()
                 .WhereMehtod(method => method == "POST")
                 .Then()
-                .RespondWith(async r =>
-                {
-                    r.StatusCode = 200;
-                    await Task.Yield();
-                })
+                .Succeed()
                 .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("nothing"));
@@ -99,11 +95,7 @@ namespace FakeHttpService.Tests
                 .OnRequest()
                 .WhereBodyAsString(body => body == "nothing")
                 .Then()
-                .RespondWith(async r =>
-                {
-                    r.StatusCode = 200;
-                    await Task.Yield();
-                })
+                .Succeed()
                 .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("nothing"));
@@ -123,11 +115,7 @@ namespace FakeHttpService.Tests
                 .OnRequest()
                 .WhereBodyAsJson(body => JToken.DeepEquals(body, JToken.Parse("{ field: 1}")))
                 .Then()
-                .RespondWith(async r =>
-                {
-                    r.StatusCode = 200;
-                    await Task.Yield();
-                })
+                .Succeed()
                 .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("{ field: 1}"));
@@ -147,11 +135,7 @@ namespace FakeHttpService.Tests
                 .OnRequest()
                 .WhereBodyAs<SamplePOCO>(obj => obj.Value == "defined")
                 .Then()
-                .RespondWith(async r =>
-                {
-                    r.StatusCode = 200;
-                    await Task.Yield();
-                })
+                .Succeed()
                 .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent(JsonConvert.SerializeObject(new SamplePOCO("defined"))));
@@ -172,11 +156,7 @@ namespace FakeHttpService.Tests
                 .WhereUri(uri => uri.ToString().EndsWith("api1"))
                 .WhereBodyAsJson(body => JToken.DeepEquals(body, JToken.Parse("{ field: 1}")))
                 .Then()
-                .RespondWith(async r =>
-                {
-                    r.StatusCode = 200;
-                    await Task.Yield();
-                })
+                .Succeed()
                 .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/api1"), new StringContent("{ field: 1}"));
