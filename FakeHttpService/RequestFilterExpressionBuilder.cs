@@ -29,7 +29,7 @@ namespace FakeHttpService
             if (_filters.Count > 0)
             {
                 ret = _filters[0];
-                for (int i = 1; i < _filters.Count; i++)
+                for (var i = 1; i < _filters.Count; i++)
                 {
                     var param = Expression.Parameter(typeof(HttpRequest), "param");
                     var first = ret;
@@ -75,7 +75,7 @@ namespace FakeHttpService
             return this;
         }
 
-        private string GetBody(HttpRequest request)
+        private static string GetBody(HttpRequest request)
         {
             using (var sr = new StreamReader(request.Body))
             {
