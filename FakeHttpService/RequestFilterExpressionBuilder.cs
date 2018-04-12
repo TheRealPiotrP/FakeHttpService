@@ -31,7 +31,7 @@ namespace FakeHttpService
                 ret = _filters[0];
                 for (var i = 1; i < _filters.Count; i++)
                 {
-                    var param = Expression.Parameter(typeof(HttpRequest), "param");
+                    var param = Expression.Parameter(typeof(HttpRequest), "HttpRequest");
                     var first = ret;
                     var second = _filters[i];
                     var combined = Expression.AndAlso(
@@ -46,7 +46,7 @@ namespace FakeHttpService
         public RequestFilterExpressionBuilder WhereUri(Expression<Func<Uri, bool>> condition)
         {
             Expression<Func<HttpRequest, Uri>> extractor = request => request.GetUri();
-            var combined = extractor.Compose(condition);
+            var combined = extractor.Compose(condition, "HttpRequest");
             _filters.Add(combined);
             return this;
         }
@@ -54,7 +54,7 @@ namespace FakeHttpService
         public RequestFilterExpressionBuilder WhereMehtod(Expression<Func<string, bool>> condition)
         {
             Expression<Func<HttpRequest, string>> extractor = request => request.Method;
-            var combined = extractor.Compose(condition);
+            var combined = extractor.Compose(condition, "HttpRequest");
             _filters.Add(combined);
             return this;
         }
@@ -62,7 +62,7 @@ namespace FakeHttpService
         public RequestFilterExpressionBuilder WhereBodyAsString(Expression<Func<string, bool>> condition)
         {
             Expression<Func<HttpRequest, string>> extractor = request => GetBody(request);
-            var combined = extractor.Compose(condition);
+            var combined = extractor.Compose(condition, "HttpRequest");
             _filters.Add(combined);
             return this;
         }
@@ -70,7 +70,7 @@ namespace FakeHttpService
         public RequestFilterExpressionBuilder WhereBodyAsJson(Expression<Func<JToken, bool>> condition)
         {
             Expression<Func<HttpRequest, JToken>> extractor = request => JToken.Parse(GetBody(request));
-            var combined = extractor.Compose(condition);
+            var combined = extractor.Compose(condition, "HttpRequest");
             _filters.Add(combined);
             return this;
         }
