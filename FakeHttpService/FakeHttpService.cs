@@ -15,7 +15,7 @@ namespace FakeHttpService
 {
     public class FakeHttpService : IDisposable
     {
-        private readonly bool serviceIdIsUserSpecified;
+        private readonly bool _serviceIdIsUserSpecified;
         private readonly IWebHost _host;
 
         private readonly List<Tuple<Expression<Func<HttpRequest, bool>>, Func<HttpResponse, Task>>> _handlers;
@@ -33,7 +33,7 @@ namespace FakeHttpService
             _throwOnUnusedHandlers = throwOnUnusedHandlers;
             ServiceId = serviceId ?? Guid.NewGuid().ToString();
 
-            serviceIdIsUserSpecified = serviceId != null;
+            _serviceIdIsUserSpecified = serviceId != null;
 
             FakeHttpServiceRepository.Register(this);
 
@@ -69,6 +69,11 @@ namespace FakeHttpService
         public ResponseBuilder OnRequest(Expression<Func<HttpRequest, bool>> condition)
         {
             return new ResponseBuilder(this, condition);
+        }
+
+        public RequestFilterExpressionBuilder OnRequest()
+        {
+            return new RequestFilterExpressionBuilder(this);
         }
 
         public async Task Invoke(HttpContext context)
@@ -129,6 +134,6 @@ but they were not made.");
         }
 
         public override string ToString() =>
-            serviceIdIsUserSpecified ? $"\"{ServiceId}\" @ {BaseAddress}" : $"@ {BaseAddress}";
+            _serviceIdIsUserSpecified ? $"\"{ServiceId}\" @ {BaseAddress}" : $"@ {BaseAddress}";
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Primitives;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
@@ -15,25 +17,127 @@ namespace FakeHttpService.Tests
 {
     public class Given_I_want_to_get_fake_responses_in_a_test : IDisposable
     {
-        private readonly IDisposable disposables;
+        private readonly IDisposable _disposables;
 
         public Given_I_want_to_get_fake_responses_in_a_test(ITestOutputHelper output)
         {
-            disposables = LogEvents.Subscribe(e => output.WriteLine(e.ToLogString()));
+            _disposables = LogEvents.Subscribe(e => output.WriteLine(e.ToLogString()));
         }
 
-        public void Dispose() => disposables.Dispose();
+        public void Dispose() => _disposables.Dispose();
 
         [Fact]
         public async Task When_requesting_a_registered_Uri_Then_the_expected_response_is_returned()
         {
             using (var fakeService = new FakeHttpService()
                 .OnRequest(r => true)
-                .RespondWith(async r => {}))
+                .RespondWith(async r => { await Task.Yield(); }))
             {
                 var response = await new HttpClient().GetAsync(fakeService.BaseAddress);
 
                 response.EnsureSuccessStatusCode();
+            }
+        }
+
+        [Fact]
+        public async Task When_filtering_Uri_Then_the_expected_response_is_returned()
+        {
+            using (var fakeService = new FakeHttpService()
+                .OnRequest()
+                .WhereUri(uri => uri.ToString().EndsWith("customapicall"))
+                .Then()
+                .RespondWith(async r => {
+                    r.StatusCode = 200;
+                    await Task.Yield();
+                }))
+            {
+                var response = await new HttpClient().GetAsync( new Uri(fakeService.BaseAddress, "/customapicall"));
+
+                response.EnsureSuccessStatusCode();
+            }
+        }
+
+        [Fact]
+        public async Task When_filtering_method_Then_the_expected_response_is_returned()
+        {
+            using (var fakeService = new FakeHttpService()
+                .OnRequest()
+                .WhereMehtod(method => method == "POST")
+                .Then()
+                .RespondWith(async r =>
+                {
+                    r.StatusCode = 200;
+                    await Task.Yield();
+                })
+            .OnRequest(_ => true).RespondWith(async r =>
+                {
+                    r.StatusCode = 500;
+                    await Task.Yield();
+                }))
+            {
+                var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("nothing"));
+
+                response.EnsureSuccessStatusCode();
+
+                 response = await new HttpClient().GetAsync(new Uri(fakeService.BaseAddress, "/customapicall"));
+
+                response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            }
+        }
+
+        [Fact]
+        public async Task When_filtering_body_Then_the_expected_response_is_returned()
+        {
+            using (var fakeService = new FakeHttpService()
+                .OnRequest()
+                .WhereBodyAsString(body => body == "nothing")
+                .Then()
+                .RespondWith(async r =>
+                {
+                    r.StatusCode = 200;
+                    await Task.Yield();
+                })
+                .OnRequest(_ => true).RespondWith(async r =>
+                {
+                    r.StatusCode = 500;
+                    await Task.Yield();
+                }))
+            {
+                var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("nothing"));
+
+                response.EnsureSuccessStatusCode();
+
+                response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("different"));
+
+                response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            }
+        }
+
+        [Fact]
+        public async Task When_filtering_body_as_json_Then_the_expected_response_is_returned()
+        {
+            using (var fakeService = new FakeHttpService()
+                .OnRequest()
+                .WhereBodyAsJson(body => JToken.DeepEquals( body, JToken.Parse("{ field: 1}")))
+                .Then()
+                .RespondWith(async r =>
+                {
+                    r.StatusCode = 200;
+                    await Task.Yield();
+                })
+                .OnRequest(_ => true).RespondWith(async r =>
+                {
+                    r.StatusCode = 500;
+                    await Task.Yield();
+                }))
+            {
+                var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("{ field: 1}"));
+
+                response.EnsureSuccessStatusCode();
+
+                response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("{}"));
+
+                response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
             }
         }
 
@@ -46,6 +150,7 @@ namespace FakeHttpService.Tests
                 {
                     r.Headers.Append("foo", "bar");
                     r.Headers.Append("colors", new StringValues(new[] {"red", "green", "blue"}));
+                    await Task.Yield();
                 }))
             {
                 var response = await new HttpClient().GetAsync(fakeService.BaseAddress);
@@ -64,6 +169,7 @@ namespace FakeHttpService.Tests
                 .RespondWith(async r =>
                 {
                     r.Body.WriteTextAsUtf8BytesAsync("foo bar zap");
+                    await Task.Yield();
                 }))
             {
                 var response = await new HttpClient().GetAsync(fakeService.BaseAddress);
@@ -85,7 +191,7 @@ namespace FakeHttpService.Tests
                     "my service", 
                     throwOnUnusedHandlers: true)
                     .OnRequest(r => r.Path == "foo")
-                    .RespondWith(async r => { }))
+                    .RespondWith(async r => { await Task.Yield(); }))
                 {
                     address = fakeService.BaseAddress;
                 }
@@ -109,6 +215,7 @@ namespace FakeHttpService.Tests
                     .OnRequest(r => r.Path == "foo")
                     .RespondWith(async r =>
                     {
+                        await Task.Yield();
                     }))
                 {
                 }
@@ -127,7 +234,7 @@ namespace FakeHttpService.Tests
 
             using (var fakeService = new FakeHttpService()
                 .OnRequest(r => true)
-                .RespondWith(async r => { }))
+                .RespondWith(async r => { await Task.Yield(); }))
             {
                 baseAddress = fakeService.BaseAddress;
 
@@ -210,7 +317,7 @@ namespace FakeHttpService.Tests
 
             using (var fakeService = new FakeHttpService()
                 .OnRequest(r => true)
-                .RespondWith(r => { throw new Exception(exceptionMessage); }))
+                .RespondWith(r => throw new Exception(exceptionMessage)))
             {
                 var client = new HttpClient {BaseAddress = fakeService.BaseAddress};
 
