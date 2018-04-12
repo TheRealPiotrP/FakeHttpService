@@ -13,8 +13,7 @@ namespace FakeHttpService
 
         public static FakeHttpService GetServiceMockById(string mockServiceId)
         {
-            FakeHttpService service;
-            MockServices.TryGetValue(mockServiceId, out service);
+            MockServices.TryGetValue(mockServiceId, out var service);
             return service;
         }
 

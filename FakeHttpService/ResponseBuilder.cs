@@ -45,5 +45,23 @@ namespace FakeHttpService
 
             return _fakeHttpService;
         }
+
+        public FakeHttpService Succeed()
+        {
+            return RespondWith(async r =>
+            {
+                r.StatusCode = 200;
+                await Task.Yield();
+            });
+        }
+
+        public FakeHttpService Fail()
+        {
+            return RespondWith(async r =>
+            {
+                r.StatusCode = 500;
+                await Task.Yield();
+            });
+        }
     }
 }
