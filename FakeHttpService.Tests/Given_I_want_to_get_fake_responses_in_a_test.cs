@@ -46,12 +46,13 @@ namespace FakeHttpService.Tests
                 .OnRequest()
                 .WhereUri(uri => uri.ToString().EndsWith("customapicall"))
                 .Then()
-                .RespondWith(async r => {
+                .RespondWith(async r =>
+                {
                     r.StatusCode = 200;
                     await Task.Yield();
                 }))
             {
-                var response = await new HttpClient().GetAsync( new Uri(fakeService.BaseAddress, "/customapicall"));
+                var response = await new HttpClient().GetAsync(new Uri(fakeService.BaseAddress, "/customapicall"));
 
                 response.EnsureSuccessStatusCode();
             }
@@ -69,17 +70,13 @@ namespace FakeHttpService.Tests
                     r.StatusCode = 200;
                     await Task.Yield();
                 })
-            .OnRequest(_ => true).RespondWith(async r =>
-                {
-                    r.StatusCode = 500;
-                    await Task.Yield();
-                }))
+                .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("nothing"));
 
                 response.EnsureSuccessStatusCode();
 
-                 response = await new HttpClient().GetAsync(new Uri(fakeService.BaseAddress, "/customapicall"));
+                response = await new HttpClient().GetAsync(new Uri(fakeService.BaseAddress, "/customapicall"));
 
                 response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
             }
@@ -97,11 +94,7 @@ namespace FakeHttpService.Tests
                     r.StatusCode = 200;
                     await Task.Yield();
                 })
-                .OnRequest(_ => true).RespondWith(async r =>
-                {
-                    r.StatusCode = 500;
-                    await Task.Yield();
-                }))
+                .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("nothing"));
 
@@ -118,18 +111,14 @@ namespace FakeHttpService.Tests
         {
             using (var fakeService = new FakeHttpService()
                 .OnRequest()
-                .WhereBodyAsJson(body => JToken.DeepEquals( body, JToken.Parse("{ field: 1}")))
+                .WhereBodyAsJson(body => JToken.DeepEquals(body, JToken.Parse("{ field: 1}")))
                 .Then()
                 .RespondWith(async r =>
                 {
                     r.StatusCode = 200;
                     await Task.Yield();
                 })
-                .OnRequest(_ => true).RespondWith(async r =>
-                {
-                    r.StatusCode = 500;
-                    await Task.Yield();
-                }))
+                .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("{ field: 1}"));
 
@@ -154,11 +143,7 @@ namespace FakeHttpService.Tests
                     r.StatusCode = 200;
                     await Task.Yield();
                 })
-                .OnRequest(_ => true).RespondWith(async r =>
-                {
-                    r.StatusCode = 500;
-                    await Task.Yield();
-                }))
+                .FailOnUnexpectedRequest())
             {
                 var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/api1"), new StringContent("{ field: 1}"));
 
@@ -178,7 +163,7 @@ namespace FakeHttpService.Tests
                 .RespondWith(async r =>
                 {
                     r.Headers.Append("foo", "bar");
-                    r.Headers.Append("colors", new StringValues(new[] {"red", "green", "blue"}));
+                    r.Headers.Append("colors", new StringValues(new[] { "red", "green", "blue" }));
                     await Task.Yield();
                 }))
             {
@@ -216,7 +201,7 @@ namespace FakeHttpService.Tests
             Action createServiceWithoutInvoking = () =>
             {
                 using (var fakeService = new FakeHttpService(
-                    "my service", 
+                    "my service",
                     throwOnUnusedHandlers: true)
                     .OnRequest(r => r.Path == "foo")
                     .RespondWith(async r => { await Task.Yield(); }))
@@ -231,7 +216,7 @@ namespace FakeHttpService.Tests
                 .Which
                 .Message
                 .Should()
-                .StartWith( $"{nameof(FakeHttpService)} \"my service\" @ {address} expected requests");
+                .StartWith($"{nameof(FakeHttpService)} \"my service\" @ {address} expected requests");
         }
 
         [Fact]
@@ -293,11 +278,11 @@ namespace FakeHttpService.Tests
                 .RespondWith(async r =>
                 {
                     r.StatusCode = 200;
-                    r.ContentType="text/plain";
+                    r.ContentType = "text/plain";
                     await r.Body.WriteTextAsUtf8BytesAsync(responseBody);
                 }))
             {
-                var client = new HttpClient {BaseAddress = fakeService.BaseAddress};
+                var client = new HttpClient { BaseAddress = fakeService.BaseAddress };
 
                 client.GetStringAsync(path).Result
                     .Should().Be(responseBody);
@@ -311,9 +296,9 @@ namespace FakeHttpService.Tests
 
             using (var fakeService = new FakeHttpService()
                 .OnRequest(r => r.Path.ToString() == path.ToString())
-                .RespondWith(async (r,s) => await r.Body.WriteTextAsUtf8BytesAsync(s.AbsolutePath)))
+                .RespondWith(async (r, s) => await r.Body.WriteTextAsUtf8BytesAsync(s.AbsolutePath)))
             {
-                var client = new HttpClient {BaseAddress = fakeService.BaseAddress};
+                var client = new HttpClient { BaseAddress = fakeService.BaseAddress };
 
                 client.GetStringAsync(path).Result
                     .Should().Be(fakeService.BaseAddress.AbsolutePath);
@@ -327,7 +312,7 @@ namespace FakeHttpService.Tests
 
             using (var fakeService = new FakeHttpService())
             {
-                var client = new HttpClient {BaseAddress = fakeService.BaseAddress};
+                var client = new HttpClient { BaseAddress = fakeService.BaseAddress };
 
                 response = client.GetAsync("").Result;
             }
@@ -347,7 +332,7 @@ namespace FakeHttpService.Tests
                 .OnRequest(r => true)
                 .RespondWith(r => throw new Exception(exceptionMessage)))
             {
-                var client = new HttpClient {BaseAddress = fakeService.BaseAddress};
+                var client = new HttpClient { BaseAddress = fakeService.BaseAddress };
 
                 response = client.GetAsync("").Result;
             }

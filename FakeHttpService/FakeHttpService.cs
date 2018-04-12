@@ -71,6 +71,16 @@ namespace FakeHttpService
             return new ResponseBuilder(this, condition);
         }
 
+        public FakeHttpService FailOnUnexpectedRequest()
+        {
+            var rb = new ResponseBuilder(this, _ => true);
+                return rb.RespondWith(async r =>
+            {
+                r.StatusCode = 500;
+                await Task.Yield();
+            });
+        }
+
         public RequestFilterExpressionBuilder OnRequest()
         {
             return new RequestFilterExpressionBuilder(this);
