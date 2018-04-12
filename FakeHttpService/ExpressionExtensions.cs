@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-namespace FakeHttpService
+namespace FakeHttpService.FilterBuilders
 {
     internal static class ExpressionExtensions
     {
