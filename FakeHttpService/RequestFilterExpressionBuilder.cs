@@ -47,7 +47,7 @@ namespace FakeHttpService.FilterBuilders
                     ret = Expression.Lambda<Func<HttpRequest, bool>>(combined, param);
                 }
             }
-            return ret;
+            return ret.CanReduce ? ret.Update(ret.Reduce(),new []{ Expression.Parameter(typeof(HttpRequest), "HttpRequest") }) : ret;
         }
 
         public RequestFilterExpressionBuilder WhereUri(Expression<Func<Uri, bool>> condition)
@@ -68,7 +68,7 @@ namespace FakeHttpService.FilterBuilders
 
         public RequestFilterExpressionBuilder WhereBodyAsString(Expression<Func<string, bool>> condition)
         {
-            Expression<Func<HttpRequest, string>> extractor = request => GetBody(request);
+            Expression<Func<HttpRequest, string>> extractor = request => Body(request);
             var combined = extractor.Compose(condition, "HttpRequest");
             _filters.Add(combined);
             return this;
@@ -76,7 +76,7 @@ namespace FakeHttpService.FilterBuilders
 
         public RequestFilterExpressionBuilder WhereBodyAsJson(Expression<Func<JToken, bool>> condition)
         {
-            Expression<Func<HttpRequest, JToken>> extractor = request => JToken.Parse(GetBody(request));
+            Expression<Func<HttpRequest, JToken>> extractor = request => Json(request);
             var combined = extractor.Compose(condition, "HttpRequest");
             _filters.Add(combined);
             return this;
@@ -84,13 +84,17 @@ namespace FakeHttpService.FilterBuilders
 
         public RequestFilterExpressionBuilder WhereBodyAs<T>(Expression<Func<T, bool>> condition)
         {
-            Expression<Func<HttpRequest, T>> extractor = request => JsonConvert.DeserializeObject<T>(GetBody(request));
+            Expression<Func<HttpRequest, T>> extractor = request => Body<T>(request);
             var combined = extractor.Compose(condition, "HttpRequest");
             _filters.Add(combined);
             return this;
         }
 
-        private static string GetBody(HttpRequest request)
+        private static T Body<T>(HttpRequest request)
+        {
+            return JsonConvert.DeserializeObject<T>(Body(request));
+        }
+        private static string Body(HttpRequest request)
         {
             using (var sr = new StreamReader(request.Body))
             {
@@ -99,6 +103,11 @@ namespace FakeHttpService.FilterBuilders
 
                 return bodyString;
             }
+        }
+
+        private static JToken Json(HttpRequest request)
+        {
+            return JToken.Parse(Body(request));
         }
     }
 }
