@@ -12,11 +12,21 @@ using Newtonsoft.Json.Linq;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
+using FakeHttpService.FilterBuilders;
 
 namespace FakeHttpService.Tests
 {
     public class Given_I_want_to_get_fake_responses_in_a_test : IDisposable
     {
+        public class SamplePOCO
+        {
+            public SamplePOCO(string value)
+            {
+                Value = value;
+            }
+
+            public string Value { get; }
+        }
         private readonly IDisposable _disposables;
 
         public Given_I_want_to_get_fake_responses_in_a_test(ITestOutputHelper output)
@@ -125,6 +135,30 @@ namespace FakeHttpService.Tests
                 response.EnsureSuccessStatusCode();
 
                 response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("{}"));
+
+                response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            }
+        }
+
+        [Fact]
+        public async Task When_filtering_body_as_POCO_Then_the_expected_response_is_returned()
+        {
+            using (var fakeService = new FakeHttpService()
+                .OnRequest()
+                .WhereBodyAs<SamplePOCO>(obj => obj.Value == "defined")
+                .Then()
+                .RespondWith(async r =>
+                {
+                    r.StatusCode = 200;
+                    await Task.Yield();
+                })
+                .FailOnUnexpectedRequest())
+            {
+                var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent(JsonConvert.SerializeObject(new SamplePOCO("defined"))));
+
+                response.EnsureSuccessStatusCode();
+
+                response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent(JsonConvert.SerializeObject(new SamplePOCO("undefined"))));
 
                 response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
             }

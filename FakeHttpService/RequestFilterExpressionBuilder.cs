@@ -1,13 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace FakeHttpService
+namespace FakeHttpService.FilterBuilders
 {
+    public static class RequestFilterExpressionBuilderExtensions
+    {
+        public static  RequestFilterExpressionBuilder OnRequest(this FakeHttpService service)
+        {
+            return new RequestFilterExpressionBuilder(service);
+        }
+    }
     public class RequestFilterExpressionBuilder
     {
         private readonly FakeHttpService _fakeHttpService;
@@ -70,6 +77,14 @@ namespace FakeHttpService
         public RequestFilterExpressionBuilder WhereBodyAsJson(Expression<Func<JToken, bool>> condition)
         {
             Expression<Func<HttpRequest, JToken>> extractor = request => JToken.Parse(GetBody(request));
+            var combined = extractor.Compose(condition, "HttpRequest");
+            _filters.Add(combined);
+            return this;
+        }
+
+        public RequestFilterExpressionBuilder WhereBodyAs<T>(Expression<Func<T, bool>> condition)
+        {
+            Expression<Func<HttpRequest, T>> extractor = request => JsonConvert.DeserializeObject<T>(GetBody(request));
             var combined = extractor.Compose(condition, "HttpRequest");
             _filters.Add(combined);
             return this;

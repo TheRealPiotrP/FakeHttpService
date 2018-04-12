@@ -81,11 +81,6 @@ namespace FakeHttpService
             });
         }
 
-        public RequestFilterExpressionBuilder OnRequest()
-        {
-            return new RequestFilterExpressionBuilder(this);
-        }
-
         public async Task Invoke(HttpContext context)
         {
             try
