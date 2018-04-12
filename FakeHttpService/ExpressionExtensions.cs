@@ -29,8 +29,8 @@ namespace FakeHttpService
             private readonly Expression _from, _to;
             public ReplaceVisitor(Expression from, Expression to)
             {
-                this._from = from;
-                this._to = to;
+                _from = from;
+                _to = to;
             }
             public override Expression Visit(Expression node)
             {

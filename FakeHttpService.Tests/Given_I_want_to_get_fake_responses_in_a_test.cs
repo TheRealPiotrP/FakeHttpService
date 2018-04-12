@@ -142,6 +142,35 @@ namespace FakeHttpService.Tests
         }
 
         [Fact]
+        public async Task When_filtering_on_body_and_uri_Then_the_expected_response_is_returned()
+        {
+            using (var fakeService = new FakeHttpService()
+                .OnRequest()
+                .WhereUri(uri => uri.ToString().EndsWith("api1"))
+                .WhereBodyAsJson(body => JToken.DeepEquals(body, JToken.Parse("{ field: 1}")))
+                .Then()
+                .RespondWith(async r =>
+                {
+                    r.StatusCode = 200;
+                    await Task.Yield();
+                })
+                .OnRequest(_ => true).RespondWith(async r =>
+                {
+                    r.StatusCode = 500;
+                    await Task.Yield();
+                }))
+            {
+                var response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/api1"), new StringContent("{ field: 1}"));
+
+                response.EnsureSuccessStatusCode();
+
+                response = await new HttpClient().PostAsync(new Uri(fakeService.BaseAddress, "/customapicall"), new StringContent("{ field: 1}"));
+
+                response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            }
+        }
+
+        [Fact]
         public async Task When_response_includes_headers_Then_they_are_returned()
         {
             using (var fakeService = new FakeHttpService()
@@ -168,8 +197,7 @@ namespace FakeHttpService.Tests
                 .OnRequest(r => true)
                 .RespondWith(async r =>
                 {
-                    r.Body.WriteTextAsUtf8BytesAsync("foo bar zap");
-                    await Task.Yield();
+                    await r.Body.WriteTextAsUtf8BytesAsync("foo bar zap");
                 }))
             {
                 var response = await new HttpClient().GetAsync(fakeService.BaseAddress);
